@@ -24,14 +24,18 @@
   --danger:#B03A3A; --danger-bg:#FDF0F0; --danger-line:#F0D5D5;
 }
 svg{width:18px;height:18px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;vertical-align:-3px}
-html,body{margin:0;padding:0;background:#DDE6EF;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;overscroll-behavior-y:none}
-body{display:flex;justify-content:center;min-height:100vh;min-height:100dvh}
+html{height:100%}
+html,body{margin:0;padding:0;background:#DDE6EF;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased}
+body{height:100%;overflow:hidden;overscroll-behavior:none;display:flex;justify-content:center;align-items:stretch}
 :focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:6px}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
-.phone{width:100%;max-width:412px;background:var(--bg);display:flex;flex-direction:column;height:100vh;height:100dvh;position:relative;overflow:hidden;box-shadow:0 0 40px rgba(20,40,60,.18);transition:background .2s}
+.phone{width:100%;max-width:412px;background:var(--bg);display:flex;flex-direction:column;height:100%;min-height:0;position:relative;overflow:hidden;box-shadow:0 0 40px rgba(20,40,60,.18);transition:background .2s}
 .phone.priv{--bg:var(--priv-bg);--line:var(--priv-line);--blue-soft:#F3E3E8}
-@media(min-width:520px){.phone{height:880px;margin:auto;border-radius:26px}}
+@media(min-width:520px){body{align-items:center}.phone{height:min(880px,100%);margin:auto;border-radius:26px}}
 
+/* #root steht zwischen .phone und den drei Ebenen — es muss die Flexkette fortsetzen,
+   sonst wächst .screen auf Inhaltshöhe und schiebt die Tableiste aus dem Bild */
+#root{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
 .hdr{padding:16px 18px 8px;background:var(--bg);flex:0 0 auto;z-index:5;transition:background .2s}
 .hdr h1{margin:0;font-size:24px;font-weight:650;letter-spacing:-.02em}
 .hdr .sub{margin:3px 0 0;font-size:13px;color:var(--ink-2)}
@@ -40,7 +44,7 @@ body{display:flex;justify-content:center;min-height:100vh;min-height:100dvh}
 .lastlink b{display:block;font-style:normal;font-weight:650;color:var(--blue);text-decoration:underline;text-underline-offset:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .phone.priv .lastlink b{color:var(--priv)}
 .iconbtn{border:1px solid var(--line);background:#fff;border-radius:10px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;color:var(--ink-2);cursor:pointer;padding:0;flex:0 0 auto}
-.screen{flex:1 1 auto;overflow-y:auto;padding:0 18px 26px;-webkit-overflow-scrolling:touch}
+.screen{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;padding:0 18px 26px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 .screen::-webkit-scrollbar{width:0}
 .tabs{flex:0 0 auto;display:flex;background:#fff;border-top:1px solid var(--line);padding:6px 2px calc(6px + env(safe-area-inset-bottom))}
 .tab{flex:1;border:0;background:none;padding:8px 1px 6px;font:inherit;font-size:10.5px;color:var(--ink-3);display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer}
@@ -140,7 +144,7 @@ body{display:flex;justify-content:center;min-height:100vh;min-height:100dvh}
 .actions{display:flex;gap:9px;margin-bottom:16px}
 .actions .btn{margin-top:0}
 .scrim{position:absolute;inset:0;background:rgba(16,32,48,.42);z-index:20;display:flex;align-items:flex-end}
-.sheet{background:var(--bg);width:100%;border-radius:20px 20px 0 0;padding:8px 18px calc(20px + env(safe-area-inset-bottom));max-height:86%;overflow-y:auto;animation:up .22s cubic-bezier(.2,.8,.3,1)}
+.sheet{background:var(--bg);width:100%;border-radius:20px 20px 0 0;padding:8px 18px calc(20px + env(safe-area-inset-bottom));max-height:86%;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;animation:up .22s cubic-bezier(.2,.8,.3,1)}
 .grab{width:38px;height:4px;background:var(--line);border-radius:2px;margin:6px auto 14px}
 .sheet h3{margin:0 0 4px;font-size:18px;font-weight:680;letter-spacing:-.02em}
 .sh-sub{font-size:13px;color:var(--ink-2);margin:0 0 16px}
@@ -158,6 +162,10 @@ input.i:focus,select.i:focus,textarea.i:focus{border-color:var(--blue);box-shado
 .acc{background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden}
 .acc>summary{padding:12px;font-size:14.5px;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px}
 .acc>summary::-webkit-details-marker{display:none}
+.acclist{max-height:44vh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.accbar{position:sticky;bottom:0;background:#fff;border-top:1px solid var(--line);padding:9px 12px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.accbar span{font-size:12.5px;color:var(--ink-2)}
+.accbar button{border:1px solid var(--blue);background:var(--blue);color:#fff;border-radius:9px;padding:8px 16px;font:inherit;font-size:13px;font-weight:650;cursor:pointer}
 .mgi{display:flex;align-items:center;gap:10px;padding:11px 12px;border-top:1px solid var(--line);font-size:14px;cursor:pointer;background:#fff;width:100%;text-align:left;font-family:inherit;color:inherit;border-left:0;border-right:0;border-bottom:0}
 .mgi .cnt{margin-left:auto;font-size:12px;color:var(--ink-3)}
 .box{width:20px;height:20px;border-radius:5px;border:1.6px solid var(--line);flex:0 0 auto;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px}
@@ -271,7 +279,7 @@ const S = {
   user:null, ready:false, online:true, loadErr:null, fromCache:false, busy:false,
   EX:[], PLANS:[], CAL:{shared:{},private:{}},
   tab:'heute', view:null, arg:null, stack:[],
-  q:'', filter:'alle', fmg:[], feq:[], ftag:[],
+  q:'', aq:'', filter:'alle', fmg:[], feq:[], ftag:[],
   pfilter:'alle', cal:'shared', weekOff:0, edit:false, form:null, sheet:null
 };
 
@@ -301,6 +309,9 @@ function valLine(e){
   return `${e.sets.length} × ${r.length===1?r[0]:r.join('/')} · ${w.length===1?w[0]+' kg':w.join(' / ')+' kg'}`;
 }
 const metaLine=e=>[e.mg.join(', '), e.eq].filter(Boolean).join(' · ')||'—';
+/* Suchtext: Tags einmal mit und einmal ohne #, damit "#dgworkout" und "dgworkout" beide treffen */
+const hay=e=>[e.name,e.code,e.mg.join(' '),e.eq,e.notes,
+  e.tags.join(' '), e.tags.map(t=>'#'+t).join(' ')].join(' ').toLowerCase();
 const allTags=()=>{const m={};S.EX.forEach(e=>e.tags.forEach(t=>m[t]=(m[t]||0)+1));return Object.entries(m).sort((a,b)=>CMP.compare(a[0],b[0]))};
 const eqUsed=()=>{const m={};S.EX.forEach(e=>{if(e.eq)m[e.eq]=(m[e.eq]||0)+1});return GERAET.filter(g=>m[g]).map(g=>[g,m[g]])};
 const mgUsed=()=>{const m={};S.EX.forEach(e=>e.mg.forEach(x=>m[x]=(m[x]||0)+1));return MG.filter(x=>m[x]).map(x=>[x,m[x]])};
@@ -585,7 +596,7 @@ function renderUeb(){
   document.getElementById('hdr').innerHTML=`<h1>Übungen</h1><p class="sub">${S.EX.length} im Pool</p>`;
   const q=S.q.trim().toLowerCase();
   const pass=e=>(S.filter==='alle'||e.type===S.filter)
-    && (!q||(e.name+' '+e.code+' '+e.tags.join(' ')+' '+e.mg.join(' ')+' '+e.eq+' '+e.notes).toLowerCase().includes(q))
+    && (!q||hay(e).includes(q))
     && (!S.fmg.length||e.mg.some(m=>S.fmg.includes(m)))
     && (!S.feq.length||S.feq.includes(e.eq))
     && (!S.ftag.length||e.tags.some(t=>S.ftag.includes(t)));
@@ -749,10 +760,14 @@ function renderForm(){
     <label class="f" for="fn">Name</label><input class="i" id="fn" value="${esc(f.name)}" oninput="A.setF('name',this.value)">
     <label class="f" for="fq">Gerät</label>
     <select class="i" id="fq" onchange="A.setF('eq',this.value)">${GERAET.map(g=>`<option ${g===f.eq?'selected':''}>${g}</option>`).join('')}</select>
-    <label class="f">Muskelgruppe · ${f.mg.length} gewählt</label>
-    <details class="acc" ${f.mg.length?'':'open'}>
-      <summary><span>${esc(f.mg.join(', '))||'Auswählen'}</span><span style="color:var(--ink-3);font-size:11.5px;flex:0 0 auto">oben → unten</span></summary>
-      ${MG.map(m=>`<button class="mgi" onclick="A.togMg('${m}')"><span class="box ${f.mg.includes(m)?'on':''}">${f.mg.includes(m)?'✓':''}</span>${m}</button>`).join('')}
+    <label class="f" id="mglabel">Muskelgruppe · ${f.mg.length} gewählt</label>
+    <details class="acc" id="mgacc" ${f.mg.length?'':'open'}>
+      <summary><span id="mgsum">${esc(f.mg.join(', '))||'Auswählen'}</span><span style="color:var(--ink-3);font-size:11.5px;flex:0 0 auto">oben → unten</span></summary>
+      <div class="acclist">
+        ${MG.map(m=>`<button class="mgi" data-mg="${m}" onclick="A.togMg('${m}')"><span class="box ${f.mg.includes(m)?'on':''}">${f.mg.includes(m)?'✓':''}</span>${m}</button>`).join('')}
+      </div>
+      <div class="accbar"><span id="mgcnt">${f.mg.length} gewählt</span>
+        <button type="button" onclick="A.closeMg()">Fertig</button></div>
     </details>
     <label class="f">Werte</label>
     ${f.type==='kraft'?`<div class="seg" style="margin-bottom:10px">
@@ -970,18 +985,15 @@ async function drawSheet(){
   }
   if(k==='add'){
     const p=planById(a);
-    const rest=S.EX.filter(e=>(S.filter==='alle'||e.type===S.filter)&&!p.items.includes(e.id));
-    let body='';
-    TORDER.forEach(t=>{const g=rest.filter(e=>e.type===t).sort((x,y)=>CMP.compare(x.name,y.name));
-      if(!g.length)return;
-      body+=`<div class="mini">${TYPE[t].label}<span class="r">${g.length}</span></div>`+g.map(e=>`<button class="ex t-${e.type}" onclick="A.addItem('${p.id}','${e.id}')">
-        ${thumb(e)}<span class="ex-main">
-        <span class="ex-top"><span class="ex-name">${esc(e.name)}</span><span class="code">${e.code}</span></span>
-        <span class="ex-val" style="display:block">${valLine(e)}</span><span class="ex-meta" style="display:block">${esc(metaLine(e))}</span></span>
-        <span style="color:var(--blue);display:flex">${s('plus')}</span></button>`).join('');});
     h=`<h3>Übung hinzufügen</h3><p class="sh-sub">${esc(p.name)} · aktuell ${p.items.length} Übungen</p>
+      <div class="search"><input id="aq" placeholder="Suchen — Name, #Tag, Gerät" value="${esc(S.aq||'')}" aria-label="Übungen durchsuchen">
+        ${S.aq?`<button class="clr" onclick="A.addSearch('')" aria-label="Suche leeren">×</button>`:''}</div>
       <div class="chiprow flat">${['alle',...TORDER].map(f=>`<button class="chip ${S.filter===f?'on':''}" onclick="A.setFilterSheet('${f}')">${f==='alle'?'Alle':TYPE[f].label}</button>`).join('')}</div>
-      ${body||'<div class="card" style="text-align:center;font-size:14px;color:var(--ink-2);padding:22px">Alle Übungen dieses Typs sind schon im Plan.</div>'}`;
+      <div id="addlist">${addList(p)}</div>`;
+    paint(h);
+    const inp=document.getElementById('aq');
+    if(inp){inp.oninput=ev=>A.addSearch(ev.target.value,true)}
+    return;
   }
   if(k==='freepick'){
     const [dk,cl]=String(a).split('|'), en=S.CAL[cl][dk]||{free:[]};
@@ -1036,6 +1048,22 @@ async function drawSheet(){
       <div id="imres"></div>`;
   }
   paint(h);
+}
+function addList(p){
+  const q=(S.aq||'').trim().toLowerCase();
+  const rest=S.EX.filter(e=>(S.filter==='alle'||e.type===S.filter)&&!p.items.includes(e.id)&&(!q||hay(e).includes(q)));
+  let body='';
+  TORDER.forEach(t=>{
+    const g=rest.filter(e=>e.type===t).sort((x,y)=>CMP.compare(x.name,y.name));
+    if(!g.length)return;
+    body+=`<div class="mini">${TYPE[t].label}<span class="r">${g.length}</span></div>`+g.map(e=>`<button class="ex t-${e.type}" onclick="A.addItem('${p.id}','${e.id}')">
+      ${thumb(e)}<span class="ex-main">
+      <span class="ex-top"><span class="ex-name">${esc(e.name)}</span><span class="code">${e.code}</span></span>
+      <span class="ex-val" style="display:block">${valLine(e)}</span><span class="ex-meta" style="display:block">${esc(metaLine(e))}</span></span>
+      <span style="color:var(--blue);display:flex">${s('plus')}</span></button>`).join('');
+  });
+  return body||`<div class="card" style="text-align:center;font-size:14px;color:var(--ink-2);padding:22px">
+    ${q?'Keine Übung gefunden.':'Alle Übungen dieses Typs sind schon im Plan.'}</div>`;
 }
 function paint(h){
   document.getElementById('overlay').innerHTML=
@@ -1149,12 +1177,22 @@ const A = {
   leavePlan(){S.edit=false;A.back()},
   togEdit(){S.edit=!S.edit;render()},
   closeSheet,
-  sheet(k,a){const fresh=!S.sheet;S.sheet=[k,a];if(fresh)pushHist();drawSheet()},
+  sheet(k,a){const fresh=!S.sheet;if(k==='add')S.aq='';S.sheet=[k,a];if(fresh)pushHist();drawSheet()},
 
   /* --- Filter --- */
   setQ(v){S.q=v;render()},
   setFilter(f){S.filter=f;render()},
-  setFilterSheet(f){S.filter=f;drawSheet()},
+  setFilterSheet(f){S.filter=f;
+    if(S.sheet&&S.sheet[0]==='add'){const el=document.getElementById('addlist');
+      if(el){el.innerHTML=addList(planById(S.sheet[1]));
+        document.querySelectorAll('.sheet .chiprow .chip').forEach((c,i)=>
+          c.classList.toggle('on',['alle',...TORDER][i]===f));return}}
+    drawSheet()},
+  /* Nur die Trefferliste neu bauen, damit das Eingabefeld den Fokus behält */
+  addSearch(v,keep){S.aq=v;
+    const el=document.getElementById('addlist');
+    if(el&&S.sheet)el.innerHTML=addList(planById(S.sheet[1]));
+    if(!keep)drawSheet();},
   setPFilter(f){S.pfilter=f;render()},
   setPFilterSheet(f){S.pfilter=f;drawSheet()},
   clearFilters(){S.fmg=[];S.feq=[];S.ftag=[];render()},
@@ -1273,8 +1311,18 @@ const A = {
   },
   setF(path,v){const p=path.split('.');let o=S.form;for(let i=0;i<p.length-1;i++)o=o[p[i]];o[p[p.length-1]]=v},
   togSide(){S.form.sets.side=!S.form.sets.side;renderForm()},
-  togMg(m){const f=S.form,i=f.mg.indexOf(m);i<0?f.mg.push(m):f.mg.splice(i,1);
-    f.mg.sort((a,b)=>MG.indexOf(a)-MG.indexOf(b));renderForm()},
+  /* Auswahl bleibt offen: nur die angetippte Zeile und die Zähler werden angefasst */
+  togMg(m){
+    const f=S.form,i=f.mg.indexOf(m),on=i<0;
+    on?f.mg.push(m):f.mg.splice(i,1);
+    f.mg.sort((a,b)=>MG.indexOf(a)-MG.indexOf(b));
+    const row=document.querySelector(`[data-mg="${CSS.escape(m)}"]`);
+    if(row){const bx=row.querySelector('.box');bx.className='box'+(on?' on':'');bx.textContent=on?'✓':''}
+    const sum=document.getElementById('mgsum'); if(sum)sum.textContent=f.mg.join(', ')||'Auswählen';
+    const lbl=document.getElementById('mglabel'); if(lbl)lbl.textContent=`Muskelgruppe · ${f.mg.length} gewählt`;
+    const cnt=document.getElementById('mgcnt'); if(cnt)cnt.textContent=`${f.mg.length} gewählt`;
+  },
+  closeMg(){const a=document.getElementById('mgacc'); if(a)a.open=false},
   setMode(m){S.form.mode=m;renderForm()},
   stdSets(n,r,w){const f=S.form,c=f.sets[0];
     const N=n?Math.max(1,+n):f.sets.length, R=r?+r:c.r, W=(w!==null&&w!==undefined&&w!=='')?+w:c.w;
