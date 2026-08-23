@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FitnessPlanner — Verbindungstest</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:18px;background:#F4F8FC;color:#16232F;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+  max-width:520px;margin:0 auto;-webkit-font-smoothing:antialiased}
+h1{font-size:21px;margin:8px 0 2px;letter-spacing:-.02em}
+.sub{font-size:13px;color:#5C6A78;margin:0 0 18px}
+.card{background:#fff;border:1px solid #E4EBF2;border-radius:14px;padding:16px;margin-bottom:14px}
+label{display:block;font-size:12px;font-weight:650;color:#5C6A78;margin:12px 0 6px}
+input{width:100%;border:1px solid #E4EBF2;border-radius:10px;padding:11px 12px;font:inherit;font-size:15px;outline:none}
+input:focus{border-color:#185FA5;box-shadow:0 0 0 3px #E6F1FB}
+button{width:100%;border:1px solid #185FA5;background:#185FA5;color:#fff;border-radius:11px;
+  padding:13px;font:inherit;font-size:15px;font-weight:650;cursor:pointer;margin-top:12px}
+button.ghost{background:#fff;color:#185FA5}
+button:disabled{opacity:.5;cursor:default}
+.row{display:flex;align-items:flex-start;gap:9px;padding:9px 0;border-bottom:1px solid #EFF4F9;font-size:13.5px;line-height:1.45}
+.row:last-child{border:0}
+.ico{width:19px;flex:0 0 auto;font-weight:700;text-align:center}
+.ok{color:#1E7A45}.bad{color:#B03A3A}.wait{color:#94A2B0}
+.row b{display:block;font-weight:650}
+.row span{color:#5C6A78;word-break:break-word}
+code{font-family:ui-monospace,Menlo,monospace;font-size:12px;background:#F4F8FC;padding:1px 5px;border-radius:4px}
+.meta{font-size:11.5px;color:#94A2B0;margin-top:14px;line-height:1.5;word-break:break-all}
+</style>
+</head>
+<body>
+
+<h1>FitnessPlanner</h1>
+<p class="sub">Verbindungstest — prüft Supabase, Auth, RLS, Tabellen und Storage</p>
+
+<div class="card" id="loginCard">
+  <label for="mail">E-Mail</label>
+  <input id="mail" type="email" autocomplete="username" placeholder="du@example.com">
+  <label for="pw">Passwort</label>
+  <input id="pw" type="password" autocomplete="current-password">
+  <button id="go">Anmelden und testen</button>
+  <button class="ghost" id="out" style="display:none">Abmelden</button>
+</div>
+
+<div class="card" id="results" style="display:none"></div>
+
+<div class="meta">
+  Projekt: <span id="host"></span><br>
+  Diese Seite ist reine Diagnose. Sie schreibt eine Testübung und löscht sie sofort wieder.
+</div>
+
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+const SUPABASE_URL      = 'https://bjcxsnkeahymlalpwugl.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqY3hzbmtlYWh5bWxhbHB3dWdsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc0NjE2MjMsImV4cCI6MjEwMzAzNzYyM30.xqdsthYQvEGOGd-FJ1A8EkAesh9jAbNM7NcA9sNsLWs';
+
+document.getElementById('host').textContent = SUPABASE_URL.replace('https://','');
+
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const box = document.getElementById('results');
+let out = [];
+
+function line(state, title, detail){
+  out.push({state, title, detail});
+  box.style.display = 'block';
+  box.innerHTML = out.map(r => {
+    const cls = r.state === true ? 'ok' : r.state === false ? 'bad' : 'wait';
+    const ico = r.state === true ? '✓' : r.state === false ? '✕' : '·';
+    return `<div class="row"><div class="ico ${cls}">${ico}</div>
+      <div><b>${r.title}</b><span>${r.detail || ''}</span></div></div>`;
+  }).join('');
+}
+
+async function run(){
+  out = [];
+
+  // 1) Anmeldung
+  const mail = document.getElementById('mail').value.trim();
+  const pw   = document.getElementById('pw').value;
+  const { data: auth, error: aerr } = await sb.auth.signInWithPassword({ email: mail, password: pw });
+  if (aerr){
+    line(false, 'Anmeldung fehlgeschlagen', aerr.message +
+      ' — Nutzer unter Authentication → Users angelegt und bestätigt?');
+    return;
+  }
+  line(true, 'Anmeldung', `${auth.user.email}<br><code>${auth.user.id}</code>`);
+  document.getElementById('out').style.display = 'block';
+
+  // 2) Alle vier Tabellen lesbar?
+  for (const t of ['exercises','workouts','calendar','exercise_history']){
+    const { count, error } = await sb.from(t).select('*', { count:'exact', head:true });
+    error ? line(false, `Tabelle ${t}`, error.message)
+          : line(true,  `Tabelle ${t}`, `lesbar · ${count} Zeilen`);
+  }
+
+  // 3) Schreiben + Trigger + Constraint
+  const id = 'test_' + Date.now();
+  const { error: ierr } = await sb.from('exercises').insert({
+    id, code: 'K9999', type: 'kraft', name: 'Verbindungstest',
+    muscle_groups: ['Rücken'], equipment: 'Maschine',
+    sets: [{ r:10, w:40 }], tags: ['test']
+  });
+  if (ierr){ line(false, 'Schreiben', ierr.message); }
+  else {
+    line(true, 'Schreiben', 'Testübung K9999 angelegt');
+
+    // Historie-Trigger: Werteänderung muss einen Eintrag erzeugen
+    await sb.from('exercises').update({ sets: [{ r:10, w:50 }] }).eq('id', id);
+    const { count: h } = await sb.from('exercise_history')
+      .select('*', { count:'exact', head:true }).eq('exercise_id', id);
+    h > 0 ? line(true,  'Historie-Trigger', `${h} Eintrag automatisch erzeugt`)
+          : line(false, 'Historie-Trigger', 'Kein Eintrag — Trigger fehlt oder Skript nicht vollständig gelaufen');
+
+    // Typ-Sperre: dieses Update MUSS scheitern
+    const { error: terr } = await sb.from('exercises').update({ type: 'cardio' }).eq('id', id);
+    terr ? line(true,  'Typ-Sperre', 'greift korrekt')
+         : line(false, 'Typ-Sperre', 'Typ liess sich ändern — Trigger fehlt');
+
+    await sb.from('exercises').delete().eq('id', id);
+    line(true, 'Aufräumen', 'Testübung wieder gelöscht');
+  }
+
+  // 4) Kalender-Index: zwei gemeinsame Einträge am selben Tag müssen scheitern
+  const day = '1999-01-01';
+  const { data: w } = await sb.from('workouts').select('id').limit(1);
+  if (!w || !w.length){
+    line(null, 'Kalender-Index', 'übersprungen — noch kein Plan vorhanden, wird später geprüft');
+  } else {
+    await sb.from('calendar').insert({ date: day, owner: null, workout_id: w[0].id });
+    const { error: derr } = await sb.from('calendar').insert({ date: day, owner: null, workout_id: w[0].id });
+    derr ? line(true,  'Kalender-Index', 'Doppelbelegung wird korrekt abgelehnt')
+         : line(false, 'Kalender-Index', 'Doppelter Eintrag möglich — partielle Indizes fehlen');
+    await sb.from('calendar').delete().eq('date', day);
+  }
+
+  // 5) Storage
+  const blob = new Blob(['test'], { type:'text/plain' });
+  const path = `test/${Date.now()}.txt`;
+  const { error: serr } = await sb.storage.from('exercise-photos').upload(path, blob);
+  if (serr){
+    line(false, 'Storage-Bucket', serr.message + ' — Bucket oder Policies fehlen');
+  } else {
+    line(true, 'Storage-Bucket', 'Upload und Löschen funktionieren');
+    await sb.storage.from('exercise-photos').remove([path]);
+  }
+
+  const fails = out.filter(r => r.state === false).length;
+  line(fails ? false : true, fails ? `${fails} Prüfung(en) fehlgeschlagen` : 'Alles bereit',
+       fails ? 'Details oben — schick mir die rote Zeile.' : 'Die App kann gebaut werden.');
+}
+
+document.getElementById('go').onclick = async (e) => {
+  e.target.disabled = true; e.target.textContent = 'Prüfe…';
+  try { await run(); }
+  catch (err) { line(false, 'Unerwarteter Fehler', err.message); }
+  e.target.disabled = false; e.target.textContent = 'Erneut testen';
+};
+
+document.getElementById('out').onclick = async () => {
+  await sb.auth.signOut();
+  box.style.display = 'none';
+  document.getElementById('out').style.display = 'none';
+};
+</script>
+</body>
+</html>
