@@ -122,6 +122,41 @@ body{height:100%;overflow:hidden;overscroll-behavior:none;display:flex;justify-c
 .hero{background:#fff;border:1.5px solid var(--line);border-radius:18px;padding:18px;margin-bottom:16px;text-align:center}
 .hero .badge{width:66px;height:66px;border-radius:17px;font-size:28px;margin:0 auto 12px}
 .hero img{width:150px;height:150px;border-radius:16px;object-fit:cover;display:block;margin:0 auto 12px;background:var(--bg)}
+/* Bilderserie: fester Kasten, Bild passt sich ein und wächst nie darüber hinaus */
+.gal{position:relative;height:190px;margin:0 auto 12px;border-radius:14px;background:var(--bg);
+  overflow:hidden;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.gal img{width:100%;height:100%;object-fit:contain;display:block;margin:0;border-radius:14px;
+  transition:opacity .14s ease;background:transparent;
+  -webkit-user-drag:none;user-select:none;-webkit-user-select:none;pointer-events:none}
+.galnum{position:absolute;top:8px;left:10px;font-size:12px;letter-spacing:.09em;font-weight:700;
+  color:var(--ink-3);font-family:ui-serif,Georgia,'Times New Roman',serif;pointer-events:none}
+.galnav{position:absolute;top:50%;transform:translateY(-50%);width:34px;height:52px;border:0;padding:0;
+  background:rgba(255,255,255,.55);color:var(--ink-3);font-size:24px;line-height:1;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;opacity:.55;transition:opacity .15s}
+.galnav:active{opacity:.95}
+.galnav.l{left:0;border-radius:0 10px 10px 0}
+.galnav.r{right:0;border-radius:10px 0 0 10px}
+.galdots{position:absolute;bottom:8px;left:0;right:0;display:flex;justify-content:center;gap:5px;pointer-events:none}
+.galdots i{width:5px;height:5px;border-radius:50%;background:var(--ink-3);opacity:.3}
+.galdots i.on{opacity:.85}
+/* Bilderzeile im Formular */
+.shots{display:flex;gap:9px;overflow-x:auto;padding:2px 0 4px}
+.shots::-webkit-scrollbar{height:0}
+.shot{flex:0 0 auto;width:82px}
+.shot .fr{position:relative;width:82px;height:82px;border-radius:10px;overflow:hidden;background:var(--bg);border:1px solid var(--line)}
+.shot .fr img{width:100%;height:100%;object-fit:cover;display:block}
+.shot .rm{position:absolute;top:3px;right:3px;width:22px;height:22px;border:0;border-radius:7px;
+  background:rgba(22,35,47,.72);color:#fff;font-size:14px;line-height:1;cursor:pointer;padding:0}
+.shot .no{position:absolute;bottom:4px;left:4px;font-size:10.5px;font-weight:700;color:#fff;
+  background:rgba(22,35,47,.72);border-radius:5px;padding:1px 6px;letter-spacing:.06em;
+  font-family:ui-serif,Georgia,'Times New Roman',serif}
+.shot .mv{display:flex;gap:5px;margin-top:5px}
+.shot .mv button{flex:1;border:1px solid var(--line);background:#fff;border-radius:7px;padding:3px 0;
+  font:inherit;font-size:13px;color:var(--ink-2);cursor:pointer;line-height:1.1}
+.shot .mv button:disabled{opacity:.3}
+.addshot{flex:0 0 auto;width:82px;height:82px;border:1px dashed var(--line);border-radius:10px;background:#fff;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;
+  color:var(--ink-3);font-size:11px;font-family:inherit}
 .hero h2{margin:0;font-size:21px;font-weight:680;letter-spacing:-.02em}
 .hero .code{display:block;margin-top:5px;font-size:12px}
 .kv{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);font-size:14px}
@@ -317,6 +352,9 @@ const eqUsed=()=>{const m={};S.EX.forEach(e=>{if(e.eq)m[e.eq]=(m[e.eq]||0)+1});r
 const mgUsed=()=>{const m={};S.EX.forEach(e=>e.mg.forEach(x=>m[x]=(m[x]||0)+1));return MG.filter(x=>m[x]).map(x=>[x,m[x]])};
 const anyFilter=()=>S.fmg.length||S.feq.length||S.ftag.length;
 const photoUrl=p=>p?sb.storage.from(BUCKET).getPublicUrl(p).data.publicUrl:null;
+const MAX_FOTOS=5;
+const ROMAN=['I','II','III','IV','V','VI','VII','VIII','IX','X'];
+const roman=n=>ROMAN[n]||String(n+1);
 
 /* ============================================================
    Lesecache (IndexedDB)
@@ -359,7 +397,9 @@ function friendly(e){
    ============================================================ */
 function mapEx(r){return {id:r.id,code:r.code,type:r.type,name:r.name,
   mg:Array.isArray(r.muscle_groups)?r.muscle_groups:[],eq:r.equipment||'',
-  sets:r.sets,tags:Array.isArray(r.tags)?r.tags:[],photo_path:r.photo_path||null,
+  sets:r.sets,tags:Array.isArray(r.tags)?r.tags:[],
+  photos:Array.isArray(r.photos)&&r.photos.length?r.photos.filter(Boolean)
+        :(r.photo_path?[r.photo_path]:[]),
   notes:r.notes||'',archived:!!r.archived}}
 function mapPlan(r){return {id:r.id,code:r.code,name:r.name,focus:r.focus||'sonstige',
   fav:!!r.favorite,notes:r.notes||'',items:Array.isArray(r.items)?r.items:[]}}
@@ -503,7 +543,7 @@ function renderLogin(err){
    Bausteine
    ============================================================ */
 function thumb(e){
-  const u=photoUrl(e.photo_path);
+  const u=photoUrl((e.photos||[])[0]);
   return u
     ? `<span class="thumb"><img src="${u}" alt="" loading="lazy"><span class="tc" style="background:var(--c-${e.type}-bg);color:var(--c-${e.type}-fg)">${TYPE[e.type].L}</span></span>`
     : `<span class="badge">${TYPE[e.type].L}</span>`;
@@ -699,10 +739,21 @@ async function renderExercise(){
   else if(e.type==='cardio') sets=`<div class="setrow"><span class="n">Dauer</span><span><b>${e.sets.minutes}</b> min</span></div>`+(e.sets.level?`<div class="setrow"><span class="n">Level</span><span><b>${e.sets.level}</b></span></div>`:'');
   else sets=`<div class="setrow"><span class="n">Sätze</span><span><b>${e.sets.sets}</b></span></div><div class="setrow"><span class="n">Haltezeit</span><span><b>${e.sets.sec}</b> s${e.sets.side?' je Seite':''}</span></div>`;
   const inP=S.PLANS.filter(p=>p.items.includes(e.id)).sort((a,b)=>CMP.compare(a.name,b.name));
-  const u=photoUrl(e.photo_path);
+  const shots=(e.photos||[]).map(photoUrl).filter(Boolean);
+  GAL.i=0; GAL.n=shots.length; GAL.urls=shots;   // beim Öffnen immer Bild 1
+  const galHtml = shots.length
+    ? `<div class="gal" id="gal">
+         <img id="galimg" draggable="false" src="${shots[0]}" alt="Abbildung 1 von ${shots.length} zu ${esc(e.name)}">
+         <span class="galnum" id="galnum">${roman(0)}</span>
+         ${shots.length>1?`
+           <button class="galnav l" aria-label="Vorheriges Bild" onclick="A.gal(-1)">‹</button>
+           <button class="galnav r" aria-label="Nächstes Bild" onclick="A.gal(1)">›</button>
+           <div class="galdots" id="galdots">${shots.map((_,i)=>`<i class="${i?'':'on'}"></i>`).join('')}</div>`:''}
+       </div>`
+    : `<div class="badge">${TYPE[e.type].L}</div>`;
   document.getElementById('screen').innerHTML=`
     <div class="hero t-${e.type}" style="border-color:var(--c-${e.type})">
-      ${u?`<img src="${u}" alt="Foto von ${esc(e.name)}">`:`<div class="badge">${TYPE[e.type].L}</div>`}
+      ${galHtml}
       <h2>${esc(e.name)}</h2><span class="code">${e.code} · ${TYPE[e.type].label}</span></div>
     <div class="mini" style="margin-top:0">Werte</div><div class="card">${sets}</div>
     <button class="btn gray" onclick="A.sheet('hist','${e.id}')">${s('clock')} Historie ansehen</button>
@@ -718,6 +769,39 @@ async function renderExercise(){
       :`<div style="font-size:14px;color:var(--ink-2)">Keine Notiz hinterlegt. Über „Bearbeiten" ergänzen — z.B. Ausführung, Variationen oder Hinweise zum Gerät.</div>`}</div>
     <button class="btn" onclick="A.openForm('${e.id}')">${s('pencil')} Bearbeiten</button>
     <button class="btn danger" onclick="A.archive('${e.id}')">Archivieren</button>`;
+  wireGal();
+}
+
+/* ---- Bilderserie in der Detailansicht ---- */
+const GAL={i:0,n:0,urls:[]};
+function showGal(i){
+  if(!GAL.n)return;
+  GAL.i=(i%GAL.n+GAL.n)%GAL.n;
+  const img=document.getElementById('galimg'); if(!img)return;
+  img.style.opacity='0';
+  setTimeout(()=>{img.src=GAL.urls[GAL.i];img.alt=`Abbildung ${GAL.i+1} von ${GAL.n}`;img.style.opacity='1'},110);
+  const num=document.getElementById('galnum'); if(num)num.textContent=roman(GAL.i);
+  const dots=document.getElementById('galdots');
+  if(dots)[...dots.children].forEach((d,j)=>d.className=j===GAL.i?'on':'');
+}
+function wireGal(){
+  const el=document.getElementById('gal'); if(!el||GAL.n<2)return;
+  let x0=null,y0=null;
+  el.addEventListener('dragstart',e=>e.preventDefault());
+  el.addEventListener('pointerdown',e=>{
+    if(e.target.closest('.galnav'))return;   // Pfeile nicht als Wisch werten
+    x0=e.clientX;y0=e.clientY;
+    e.preventDefault();                      // sonst startet Chrome einen Bild-Drag
+    try{el.setPointerCapture(e.pointerId)}catch(_){}
+  });
+  el.addEventListener('pointerup',e=>{
+    if(x0===null)return;
+    const dx=e.clientX-x0, dy=e.clientY-y0;
+    x0=null;
+    // nur waagerechte Wische zählen, sonst kollidiert es mit dem Scrollen
+    if(Math.abs(dx)>42 && Math.abs(dx)>Math.abs(dy)*1.5) showGal(GAL.i+(dx<0?1:-1));
+  });
+  el.addEventListener('pointercancel',()=>{x0=null});
 }
 
 /* ============================================================
@@ -753,7 +837,7 @@ function renderForm(){
       <button class="mgi" style="border:1px solid var(--line);border-radius:10px;margin-top:8px" onclick="A.togSide()">
         <span class="box ${f.sets.side?'on':''}">${f.sets.side?'✓':''}</span> Je Seite</button>`;
   }
-  const pu=f.photoData||photoUrl(f.photo_path);
+  const shots=f.photos||[];
   document.getElementById('screen').innerHTML=`
     <label class="f">Typ · nach Anlage gesperrt</label>
     <div class="locked">${s('lock')} ${TYPE[f.type].label} · Code ${f.code}</div>
@@ -774,18 +858,21 @@ function renderForm(){
       <button class="${f.mode==='std'?'on':''}" onclick="A.setMode('std')">Alle Sätze gleich</button>
       <button class="${f.mode==='per'?'on':''}" onclick="A.setMode('per')">Pro Satz</button></div>`:''}
     ${setsHtml}
-    <label class="f">Foto</label>
-    <div class="photobox">
-      ${pu?`<img src="${pu}" alt="Vorschau">`:`<div class="ph">${s('img')}</div>`}
-      <div style="flex:1;min-width:0">
-        <div style="font-size:13px;color:var(--ink-2);line-height:1.45">Wird auf 480 px verkleinert und im Storage abgelegt.</div>
-        <div style="display:flex;gap:8px;margin-top:8px">
-          <label class="chip" style="cursor:pointer">${pu?'Ersetzen':'Auswählen'}
-            <input type="file" accept="image/*" style="display:none" onchange="A.pickPhoto(this)"></label>
-          ${pu?`<button class="chip" onclick="A.dropPhoto()">Entfernen</button>`:''}
-        </div>
-      </div>
+    <label class="f">Bilder · ${shots.length} von ${MAX_FOTOS}</label>
+    <div class="shots">
+      ${shots.map((sh,i)=>`<div class="shot">
+        <div class="fr"><img src="${sh.url}" alt="Bild ${i+1}">
+          <button class="rm" aria-label="Bild entfernen" onclick="A.rmShot(${i})">×</button>
+          <span class="no">${roman(i)}</span></div>
+        <div class="mv">
+          <button onclick="A.moveShot(${i},-1)" ${i===0?'disabled':''} aria-label="nach links">‹</button>
+          <button onclick="A.moveShot(${i},1)" ${i===shots.length-1?'disabled':''} aria-label="nach rechts">›</button>
+        </div></div>`).join('')}
+      ${shots.length<MAX_FOTOS?`<label class="addshot">${s('plus')}<span>Bild</span>
+        <input type="file" accept="image/*" multiple style="display:none" onchange="A.pickShots(this)"></label>`:''}
     </div>
+    <div style="font-size:12.5px;color:var(--ink-3);line-height:1.45;margin-top:4px">
+      Bild I ist das Symbol in der Übersicht. Alle werden auf 480 px verkleinert.</div>
     <label class="f">Tags</label>
     <div class="tags" style="margin-top:0">${f.tags.map(t=>`<span class="tag" style="font-size:12px;padding:6px 10px">#${esc(t)} <b style="cursor:pointer;color:var(--ink-3)" onclick="A.rmTag('${esc(t)}')">×</b></span>`).join('')||'<span style="font-size:13px;color:var(--ink-3)">Keine Tags</span>'}</div>
     <div style="display:flex;gap:8px;margin-top:9px">
@@ -1152,6 +1239,26 @@ function download(name,content,mime){
   setTimeout(()=>{URL.revokeObjectURL(url);a.remove()},400);
 }
 
+/* Bild auf 480 px verkleinern; gibt Blob und Vorschau-URL zurück */
+function shrink(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=()=>{const im=new Image();
+      im.onload=()=>{
+        const max=480, sc=Math.min(1,max/Math.max(im.width,im.height));
+        const cv=document.createElement('canvas');
+        cv.width=Math.round(im.width*sc); cv.height=Math.round(im.height*sc);
+        cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);
+        cv.toBlob(b=>b?res({path:null,blob:b,url:cv.toDataURL('image/jpeg',0.6)}):rej(new Error('leer')),
+          'image/jpeg',0.6);
+      };
+      im.onerror=()=>rej(new Error('Bild unlesbar'));
+      im.src=r.result;};
+    r.onerror=()=>rej(new Error('Datei unlesbar'));
+    r.readAsDataURL(file);
+  });
+}
+
 /* ============================================================
    Aktionen
    ============================================================ */
@@ -1297,8 +1404,11 @@ const A = {
   openForm(id){
     const e=byId(id);
     S.form=JSON.parse(JSON.stringify({isNew:false,id:e.id,type:e.type,code:e.code,name:e.name,eq:e.eq||GERAET[0],
-      mg:e.mg,tags:e.tags,notes:e.notes||'',photo_path:e.photo_path,photoData:null,photoBlob:null,sets:e.sets,
+      mg:e.mg,tags:e.tags,notes:e.notes||'',sets:e.sets,
       mode:(e.type==='kraft'&&Array.isArray(e.sets)&&new Set(e.sets.map(x=>x.w+'/'+x.r)).size>1)?'per':'std'}));
+    // Blobs überstehen kein JSON, deshalb danach setzen
+    S.form.photos=(e.photos||[]).map(pth=>({path:pth,url:photoUrl(pth),blob:null}));
+    S.form.origPhotos=[...(e.photos||[])];
     A.go('exform',id);
   },
   async newEx(t){
@@ -1306,7 +1416,7 @@ const A = {
     const sets = t==='kraft' ? [{r:10,w:20},{r:10,w:20},{r:10,w:20}]
                : t==='cardio' ? {minutes:10,level:null} : {sets:3,sec:30,side:false};
     S.form={isNew:true,id:null,type:t,code,name:'',eq:t==='cardio'?'Cardiogerät':(t==='dehnen'?'Matte':'Langhantel'),
-      mg:[],tags:[],notes:'',photo_path:null,photoData:null,photoBlob:null,sets,mode:'std'};
+      mg:[],tags:[],notes:'',photos:[],origPhotos:[],sets,mode:'std'};
     closeSheet();A.go('exform','new');
   },
   setF(path,v){const p=path.split('.');let o=S.form;for(let i=0;i<p.length-1;i++)o=o[p[i]];o[p[p.length-1]]=v},
@@ -1323,6 +1433,7 @@ const A = {
     const cnt=document.getElementById('mgcnt'); if(cnt)cnt.textContent=`${f.mg.length} gewählt`;
   },
   closeMg(){const a=document.getElementById('mgacc'); if(a)a.open=false},
+  gal(d){showGal(GAL.i+d)},
   setMode(m){S.form.mode=m;renderForm()},
   stdSets(n,r,w){const f=S.form,c=f.sets[0];
     const N=n?Math.max(1,+n):f.sets.length, R=r?+r:c.r, W=(w!==null&&w!==undefined&&w!=='')?+w:c.w;
@@ -1334,23 +1445,29 @@ const A = {
   addNewTag(){const el=document.getElementById('nt');const v=(el.value||'').trim().toLowerCase().replace(/^#/,'');
     if(!v)return;if(!S.form.tags.includes(v))S.form.tags.push(v);el.value='';renderForm()},
   rmTag(t){S.form.tags=S.form.tags.filter(x=>x!==t);renderForm()},
-  pickPhoto(inp){
-    const file=inp.files&&inp.files[0]; if(!file)return;
-    if(!/^image\//.test(file.type))return toast('Bitte eine Bilddatei wählen');
-    const r=new FileReader();
-    r.onload=()=>{const im=new Image();
-      im.onload=()=>{const max=480,sc=Math.min(1,max/Math.max(im.width,im.height));
-        const cv=document.createElement('canvas');cv.width=Math.round(im.width*sc);cv.height=Math.round(im.height*sc);
-        cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);
-        cv.toBlob(b=>{S.form.photoBlob=b;S.form.photoData=cv.toDataURL('image/jpeg',0.6);renderForm();
-          toast(`Foto verkleinert · ${Math.round(b.size/1024)} KB`)},'image/jpeg',0.6);
-      };
-      im.onerror=()=>toast('Bild konnte nicht gelesen werden');
-      im.src=r.result};
-    r.onerror=()=>toast('Datei konnte nicht gelesen werden');
-    r.readAsDataURL(file);
+  async pickShots(inp){
+    const files=[...(inp.files||[])].filter(f=>/^image\//.test(f.type));
+    inp.value='';
+    if(!files.length)return toast('Bitte Bilddateien wählen');
+    const frei=MAX_FOTOS-S.form.photos.length;
+    if(frei<=0)return toast(`Mehr als ${MAX_FOTOS} Bilder gehen nicht`);
+    const nimm=files.slice(0,frei);
+    let kb=0;
+    for(const f of nimm){
+      try{ const sh=await shrink(f); S.form.photos.push(sh); kb+=Math.round(sh.blob.size/1024); }
+      catch(e){ toast(`„${f.name}" konnte nicht gelesen werden`); }
+    }
+    renderForm();
+    const zuviel=files.length-nimm.length;
+    toast(`${nimm.length} Bild${nimm.length>1?'er':''} verkleinert · ${kb} KB`+(zuviel?` · ${zuviel} übersprungen`:''));
   },
-  dropPhoto(){S.form.photoBlob=null;S.form.photoData=null;S.form.photo_path=null;renderForm();toast('Foto entfernt')},
+  rmShot(i){S.form.photos.splice(i,1);renderForm()},
+  moveShot(i,d){
+    const a=S.form.photos, j=i+d;
+    if(j<0||j>=a.length)return;
+    [a[i],a[j]]=[a[j],a[i]];
+    renderForm();
+  },
 
   async saveForm(){
     const f=S.form;
@@ -1360,16 +1477,23 @@ const A = {
     try{
       const id = f.isNew ? uid('ex') : f.id;
 
-      let photo_path = f.photo_path;
-      if(f.photoBlob){
-        const path=`${id}.jpg`;
-        const {error:uerr}=await sb.storage.from(BUCKET).upload(path,f.photoBlob,{upsert:true,contentType:'image/jpeg'});
+      // Neue Bilder hochladen, vorhandene behalten — Reihenfolge bleibt erhalten
+      const photos=[];
+      for(let i=0;i<f.photos.length;i++){
+        const sh=f.photos[i];
+        if(sh.path){ photos.push(sh.path); continue; }
+        const path=`${id}/${Date.now()}-${i}.jpg`;
+        const {error:uerr}=await sb.storage.from(BUCKET).upload(path,sh.blob,{contentType:'image/jpeg'});
         if(uerr)throw uerr;
-        photo_path=path;
+        photos.push(path);
       }
 
+      // Entfernte Bilder aus dem Speicher werfen, sonst bleiben Karteileichen liegen
+      const weg=(f.origPhotos||[]).filter(pth=>!photos.includes(pth));
+      if(weg.length){ try{ await sb.storage.from(BUCKET).remove(weg); }catch(e){} }
+
       const payload={name:f.name.trim(),equipment:f.eq,muscle_groups:f.mg,sets:f.sets,
-        tags:f.tags,notes:f.notes||'',photo_path};
+        tags:f.tags,notes:f.notes||'',photos};
 
       if(f.isNew){
         const code=await nextExCode(f.type);
